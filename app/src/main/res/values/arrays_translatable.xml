@@ -22,6 +22,8 @@
         <item>Google Photos</item>
         <item>Union</item>
         <item>Mega</item>
+        <item>Amazon S3</item>
+        <item>Cloudflare R2</item>
     </array>
 
     <array name="provider_summaries">
@@ -46,5 +48,7 @@
         <item>Cloud Photo Storage</item>
         <item>Merge multiple remotes into one</item>
         <item>Cloud file storage</item>
+        <item>Amazon S3 object storage</item>
+        <item>Cloudflare R2 object storage (S3-compatible)</item>
     </array>
 </resources>
