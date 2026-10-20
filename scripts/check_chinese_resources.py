@@ -36,6 +36,8 @@ def indexed_placeholders(value):
 
 def list_values(root, name):
     element = item_map(root, "array").get(name)
+    if element is None:
+        element = item_map(root, "integer-array").get(name)
     assert element is not None, f"Missing array: {name}"
     return ["".join(node.itertext()) for node in element.findall("item")]
 
