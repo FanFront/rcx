@@ -46,6 +46,11 @@ jobs:
           distribution: temurin
           java-version: '11'
 
+      # Resolve Android dependencies and compile/test the Java sources before
+      # the much slower native Go cross-compilation.
+      - name: Run Java unit tests
+        run: ./gradlew testOssDebugUnitTest --stacktrace
+
       - name: Build rclone for Android
         run: ./gradlew rclone:buildNative --stacktrace
 
@@ -55,9 +60,6 @@ jobs:
             test -s "app/lib/$abi/librclone.so"
             file "app/lib/$abi/librclone.so"
           done
-
-      - name: Run Java unit tests
-        run: ./gradlew testOssDebugUnitTest --stacktrace
 
       - name: Build OSS debug APKs
         run: ./gradlew assembleOssDebug --stacktrace
