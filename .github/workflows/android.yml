@@ -13,12 +13,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Gradle 6.9 and Android Gradle Plugin 4.2.1 use Java 11.
-      - name: Set up JDK 11
+      # Modern Android SDK command-line tools need JDK 17+.
+      - name: Set up JDK 17 for sdkmanager
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '11'
+          java-version: '17'
 
       # Match the minimum toolchain used by rclone v1.75.2.
       - name: Set up Go 1.26.9
@@ -31,6 +31,13 @@ jobs:
         run: |
           set +o pipefail
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-30" "ndk;28.2.13676358"
+
+      # The existing Gradle 6.9/Android Gradle Plugin 4.2.1 build uses JDK 11.
+      - name: Set up JDK 11 for Gradle
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
 
       - name: Build rclone for Android
         run: ./gradlew rclone:buildNative --stacktrace
