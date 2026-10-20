@@ -158,8 +158,11 @@ public class GeneralSettingsFragment extends Fragment {
 
         if (sharedPreferences.contains(getString(R.string.pref_key_locale))) {
             String localeTag = sharedPreferences.getString(getString(R.string.pref_key_locale), "en-US");
-            Locale locale = Locale.forLanguageTag(localeTag);
-            localeSummary.setText(locale.getDisplayLanguage());
+            List<String> locales = Arrays.asList(getResources().getStringArray(R.array.locales));
+            int index = locales.indexOf(localeTag);
+            String[] nativeNames = getResources().getStringArray(R.array.locale_display_names);
+            localeSummary.setText(index >= 0 && index < nativeNames.length
+                    ? nativeNames[index] : Locale.forLanguageTag(localeTag).getDisplayName());
         } else {
             localeSummary.setText(getString(R.string.pref_locale_not_set));
         }
