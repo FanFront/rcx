@@ -7,6 +7,13 @@ on:
   workflow_dispatch:
 
 jobs:
+  validate-chinese-resources:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Chinese resource XML and formatting
+        run: python3 scripts/check_chinese_resources.py
+
   build-all:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
