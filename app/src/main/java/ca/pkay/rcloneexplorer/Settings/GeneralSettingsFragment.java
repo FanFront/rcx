@@ -494,14 +494,15 @@ public class GeneralSettingsFragment extends Fragment {
                 pref.getString(context.getString(R.string.pref_key_locale), "en-US"));
 
         builder.setTitle(R.string.pref_locale_dlg_title);
-        final int[] userSelected = new int[1];
-        builder.setSingleChoiceItems(R.array.locales, initialSelection, (dialog, which) -> userSelected[0] = which);
+        final int[] userSelected = {initialSelection >= 0 ? initialSelection : 0};
+        builder.setSingleChoiceItems(R.array.locale_display_names, initialSelection,
+                (dialog, which) -> userSelected[0] = which);
         builder.setNegativeButton(R.string.cancel, null);
         builder.setPositiveButton(R.string.select, (dialog, which) -> {
             String locale = locales.get(userSelected[0]);
             pref.edit().putString(getString(R.string.pref_key_locale), locale).apply();
             if(null != localeSummary) {
-                localeSummary.setText(Locale.forLanguageTag(locale).getDisplayLanguage());
+                localeSummary.setText(getResources().getStringArray(R.array.locale_display_names)[userSelected[0]]);
                 Toasty.normal(context, getString(R.string.pref_locale_restart_notice), Toast.LENGTH_LONG).show();
             }
         });
