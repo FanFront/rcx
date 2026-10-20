@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="provider_names">
+        <item>Box</item>
+        <item>Backblaze B2</item>
+        <item>Dropbox</item>
+        <item>FTP</item>
+        <item>HTTP</item>
+        <item>HubiC</item>
+        <item>pCloud</item>
+        <item>SFTP</item>
+        <item>Yandex 网盘</item>
+        <item>WebDAV</item>
+        <item>Microsoft OneDrive</item>
+        <item>别名</item>
+        <item>加密存储</item>
+        <item>青云 QingStor</item>
+        <item>Microsoft Azure Blob 存储</item>
+        <item>缓存</item>
+        <item>本地存储</item>
+        <item>Google 云端硬盘</item>
+        <item>Google 相册</item>
+        <item>联合存储</item>
+        <item>Mega</item>
+        <item>Amazon S3</item>
+        <item>Cloudflare R2</item>
+    </array>
+    <array name="provider_summaries">
+        <item>云端文件存储</item>
+        <item>云端文件存储</item>
+        <item>云端文件存储</item>
+        <item>访问 FTP 文件服务器</item>
+        <item>访问 HTTP 服务器</item>
+        <item>云端文件存储</item>
+        <item>云端文件存储</item>
+        <item>访问 SFTP 服务器</item>
+        <item>云端文件存储</item>
+        <item>访问 WebDAV 服务器</item>
+        <item>云端文件存储</item>
+        <item>为远程存储或路径创建别名</item>
+        <item>加密远程存储中的文件</item>
+        <item>云对象存储</item>
+        <item>云对象存储</item>
+        <item>在设备上缓存文件以加快访问速度</item>
+        <item>访问设备内部存储</item>
+        <item>云端文件存储</item>
+        <item>云端照片存储</item>
+        <item>将多个远程存储合并为一个</item>
+        <item>云端文件存储</item>
+        <item>Amazon S3 对象存储</item>
+        <item>兼容 S3 的 Cloudflare R2 对象存储</item>
+    </array>
+</resources>
