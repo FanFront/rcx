@@ -31,6 +31,12 @@
         </activity>
 
         <activity
+            android:name=".TransferActivity"
+            android:label="@string/transfer_tasks"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:exported="false" />
+
+        <activity
             android:name=".MainActivity"
             android:label="@string/app_short_name"
             android:launchMode="singleTop"
@@ -71,8 +77,8 @@
             android:name=".Services.ReportService"
             android:foregroundServiceType="dataSync" />
 
-        <receiver android:name=".BroadcastReceivers.DownloadCancelAction" />
-        <receiver android:name=".BroadcastReceivers.UploadCancelAction" />
+        <receiver android:name=".BroadcastReceivers.DownloadCancelAction" android:exported="false" />
+        <receiver android:name=".BroadcastReceivers.UploadCancelAction" android:exported="false" />
         <receiver android:name=".BroadcastReceivers.ServeCancelAction" />
         <receiver android:name=".BroadcastReceivers.DeleteCancelAction" />
         <receiver android:name=".BroadcastReceivers.MoveCancelAction" />

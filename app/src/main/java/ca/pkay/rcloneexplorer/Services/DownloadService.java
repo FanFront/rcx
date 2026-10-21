@@ -24,6 +24,7 @@ import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 
 import ca.pkay.rcloneexplorer.BroadcastReceivers.DownloadCancelAction;
+import ca.pkay.rcloneexplorer.TransferActivity;
 import ca.pkay.rcloneexplorer.Items.FileItem;
 import ca.pkay.rcloneexplorer.Items.RemoteItem;
 import ca.pkay.rcloneexplorer.Log2File;
@@ -35,6 +36,8 @@ import ca.pkay.rcloneexplorer.util.FLog;
 public class DownloadService extends IntentService {
 
     private static final String TAG = "DownloadService";
+    private static final int PENDING_FLAGS = PendingIntent.FLAG_UPDATE_CURRENT
+            | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0);
     public static final String DOWNLOAD_ITEM_ARG = "ca.pkay.rcexplorer.download_service.arg1";
     public static final String DOWNLOAD_PATH_ARG = "ca.pkay.rcexplorer.download_service.arg2";
     public static final String REMOTE_ARG = "ca.pkay.rcexplorer.download_service.arg3";
@@ -93,11 +96,11 @@ public class DownloadService extends IntentService {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         Boolean isLoggingEnable = sharedPreferences.getBoolean(getString(R.string.pref_key_logs), false);
         
-        Intent foregroundIntent = new Intent(this, DownloadService.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, foregroundIntent, 0);
+        Intent foregroundIntent = new Intent(this, TransferActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, foregroundIntent, PENDING_FLAGS);
 
         Intent cancelIntent = new Intent(this, DownloadCancelAction.class);
-        PendingIntent cancelPendingIntent = PendingIntent.getBroadcast(this, 0, cancelIntent, 0);
+        PendingIntent cancelPendingIntent = PendingIntent.getBroadcast(this, 0, cancelIntent, PENDING_FLAGS);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.stat_sys_download)
@@ -108,7 +111,10 @@ public class DownloadService extends IntentService {
 
         startForeground(PERSISTENT_NOTIFICATION_ID, builder.build());
 
+        TransferManager.start(TransferManager.Kind.DOWNLOAD, downloadItem.getName());
         currentProcess = rclone.downloadFile(remote, downloadItem, downloadPath);
+        TransferManager.attach(TransferManager.Kind.DOWNLOAD, currentProcess);
+        int exitCode = -1;
 
         if (currentProcess != null) {
             try {
@@ -121,6 +127,7 @@ public class DownloadService extends IntentService {
                         String s = line.substring(12).trim();
                         notificationBigText[0] = s;
                         notificationContent = s;
+                        TransferManager.update(TransferManager.Kind.DOWNLOAD, s);
                     } else if (line.startsWith(" *")) {
                         String s = line.substring(2).trim();
                         notificationBigText[1] = s;
@@ -134,7 +141,9 @@ public class DownloadService extends IntentService {
                         log2File.log(line);
                     }
 
-                    updateNotification(downloadItem, notificationContent, notificationBigText);
+                    if (!TransferManager.wasCancelled(TransferManager.Kind.DOWNLOAD)) {
+                        updateNotification(downloadItem, notificationContent, notificationBigText);
+                    }
                 }
             } catch (InterruptedIOException e) {
                 FLog.d(TAG, "onHandleIntent: I/O interrupted, stream closed");
@@ -145,17 +154,23 @@ public class DownloadService extends IntentService {
             }
 
             try {
-                currentProcess.waitFor();
+                exitCode = currentProcess.waitFor();
             } catch (InterruptedException e) {
                 FLog.e(TAG, "onHandleIntent: error waiting for process", e);
+                currentProcess.destroy();
+                Thread.currentThread().interrupt();
             }
         }
 
+        boolean cancelled = TransferManager.wasCancelled(TransferManager.Kind.DOWNLOAD);
+        TransferManager.complete(TransferManager.Kind.DOWNLOAD, exitCode == 0);
         int notificationId = (int)System.currentTimeMillis();
 
-        if (transferOnWiFiOnly && connectivityChanged) {
+        if (cancelled) {
+            // The user stopped this task; it is neither success nor failure.
+        } else if (transferOnWiFiOnly && connectivityChanged) {
             showConnectivityChangedNotification();
-        } else if (currentProcess != null && currentProcess.exitValue() == 0) {
+        } else if (exitCode == 0) {
             showDownloadFinishedNotification(notificationId, downloadItem.getName());
         } else {
             showDownloadFailedNotification(notificationId, downloadItem.getName());
@@ -213,11 +228,11 @@ public class DownloadService extends IntentService {
             }
         }
 
-        Intent foregroundIntent = new Intent(this, DownloadService.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, foregroundIntent, 0);
+        Intent foregroundIntent = new Intent(this, TransferActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, foregroundIntent, PENDING_FLAGS);
 
         Intent cancelIntent = new Intent(this, DownloadCancelAction.class);
-        PendingIntent cancelPendingIntent = PendingIntent.getBroadcast(this, 0, cancelIntent, 0);
+        PendingIntent cancelPendingIntent = PendingIntent.getBroadcast(this, 0, cancelIntent, PENDING_FLAGS);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.stat_sys_download)
@@ -309,6 +324,11 @@ public class DownloadService extends IntentService {
         super.onDestroy();
         if (currentProcess != null) {
             currentProcess.destroy();
+        }
+        TransferManager.State state = TransferManager.snapshot(TransferManager.Kind.DOWNLOAD).state;
+        if (state == TransferManager.State.RUNNING || state == TransferManager.State.CANCELLING) {
+            TransferManager.cancel(TransferManager.Kind.DOWNLOAD);
+            TransferManager.complete(TransferManager.Kind.DOWNLOAD, false);
         }
 
         if (transferOnWiFiOnly) {

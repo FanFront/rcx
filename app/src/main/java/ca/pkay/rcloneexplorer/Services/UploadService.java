@@ -26,6 +26,7 @@ import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 
 import ca.pkay.rcloneexplorer.BroadcastReceivers.UploadCancelAction;
+import ca.pkay.rcloneexplorer.TransferActivity;
 import ca.pkay.rcloneexplorer.Items.RemoteItem;
 import ca.pkay.rcloneexplorer.Log2File;
 import ca.pkay.rcloneexplorer.R;
@@ -36,6 +37,8 @@ import ca.pkay.rcloneexplorer.util.FLog;
 public class UploadService extends IntentService {
 
     private static final String TAG = "UploadService";
+    private static final int PENDING_FLAGS = PendingIntent.FLAG_UPDATE_CURRENT
+            | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0);
     public static final String UPLOAD_PATH_ARG = "ca.pkay.rcexplorer.upload_service.arg1";
     public static final String LOCAL_PATH_ARG = "ca.pkay.rcexplorer.upload_service.arg2";
     public static final String REMOTE_ARG = "ca.pkay.rcexplorer.upload_service.arg3";
@@ -103,11 +106,11 @@ public class UploadService extends IntentService {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         Boolean isLoggingEnable = sharedPreferences.getBoolean(getString(R.string.pref_key_logs), false);
 
-        Intent foregroundIntent = new Intent(this, UploadService.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, foregroundIntent, 0);
+        Intent foregroundIntent = new Intent(this, TransferActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, foregroundIntent, PENDING_FLAGS);
 
         Intent cancelIntent = new Intent(this, UploadCancelAction.class);
-        PendingIntent cancelPendingIntent = PendingIntent.getBroadcast(this, 0, cancelIntent, 0);
+        PendingIntent cancelPendingIntent = PendingIntent.getBroadcast(this, 0, cancelIntent, PENDING_FLAGS);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.stat_sys_upload)
@@ -118,7 +121,10 @@ public class UploadService extends IntentService {
 
         startForeground(PERSISTENT_NOTIFICATION_ID, builder.build());
 
+        TransferManager.start(TransferManager.Kind.UPLOAD, uploadFileName);
         currentProcess = rclone.uploadFile(remote, uploadPath, uploadFilePath);
+        TransferManager.attach(TransferManager.Kind.UPLOAD, currentProcess);
+        int exitCode = -1;
 
         if (currentProcess != null) {
             try {
@@ -131,6 +137,7 @@ public class UploadService extends IntentService {
                         String s = line.substring(12).trim();
                         notificationBigText[0] = s;
                         notificationContent = s;
+                        TransferManager.update(TransferManager.Kind.UPLOAD, s);
                     } else if (line.startsWith(" *")) {
                         String s = line.substring(2).trim();
                         notificationBigText[1] = s;
@@ -144,7 +151,9 @@ public class UploadService extends IntentService {
                         log2File.log(line);
                     }
 
-                    updateNotification(uploadFileName, notificationContent, notificationBigText, isFile);
+                    if (!TransferManager.wasCancelled(TransferManager.Kind.UPLOAD)) {
+                        updateNotification(uploadFileName, notificationContent, notificationBigText, isFile);
+                    }
                 }
             } catch (InterruptedIOException e) {
                 FLog.d(TAG, "onHandleIntent: I/O interrupted, stream closed");
@@ -155,14 +164,22 @@ public class UploadService extends IntentService {
             }
 
             try {
-                currentProcess.waitFor();
+                exitCode = currentProcess.waitFor();
             } catch (InterruptedException e) {
                 FLog.e(TAG, "onHandleIntent: error waiting for process", e);
+                currentProcess.destroy();
+                Thread.currentThread().interrupt();
             }
         }
 
-        boolean result = currentProcess != null && currentProcess.exitValue() == 0;
-        onUploadFinished(remote.getName(), uploadPath, uploadFilePath, result);
+        boolean result = exitCode == 0;
+        TransferManager.complete(TransferManager.Kind.UPLOAD, result);
+        if (TransferManager.wasCancelled(TransferManager.Kind.UPLOAD)) {
+            // Refresh the listing, but don't misreport a user cancellation as failure.
+            sendUploadFinishedBroadcast(remote.getName(), uploadPath);
+        } else {
+            onUploadFinished(remote.getName(), uploadPath, uploadFilePath, result);
+        }
 
         NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
         notificationManagerCompat.cancel(PERSISTENT_NOTIFICATION_ID);
@@ -216,11 +233,11 @@ public class UploadService extends IntentService {
             }
         }
 
-        Intent foregroundIntent = new Intent(this, UploadService.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, foregroundIntent, 0);
+        Intent foregroundIntent = new Intent(this, TransferActivity.class);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, foregroundIntent, PENDING_FLAGS);
 
         Intent cancelIntent = new Intent(this, UploadCancelAction.class);
-        PendingIntent cancelPendingIntent = PendingIntent.getBroadcast(this, 0, cancelIntent, 0);
+        PendingIntent cancelPendingIntent = PendingIntent.getBroadcast(this, 0, cancelIntent, PENDING_FLAGS);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.stat_sys_upload)
@@ -341,6 +358,11 @@ public class UploadService extends IntentService {
         super.onDestroy();
         if (currentProcess != null) {
             currentProcess.destroy();
+        }
+        TransferManager.State state = TransferManager.snapshot(TransferManager.Kind.UPLOAD).state;
+        if (state == TransferManager.State.RUNNING || state == TransferManager.State.CANCELLING) {
+            TransferManager.cancel(TransferManager.Kind.UPLOAD);
+            TransferManager.complete(TransferManager.Kind.UPLOAD, false);
         }
 
         if (transferOnWiFiOnly) {

@@ -524,4 +524,16 @@
     <string name="r2_account_id">Cloudflare Account ID</string>
     <string name="r2_account_id_help">Enter your account ID from the Cloudflare dashboard. The R2 endpoint is constructed automatically.</string>
     <string name="r2_account_id_invalid">Enter the account ID (letters and numbers only), not a URL</string>
+    <string name="transfer_tasks">Transfers</string>
+    <string name="transfer_uploads">Uploads</string>
+    <string name="transfer_downloads">Downloads</string>
+    <string name="transfer_stop">Stop transfer</string>
+    <string name="transfer_no_active">No transfer yet</string>
+    <string name="transfer_idle">Idle</string>
+    <string name="transfer_running">Transferring</string>
+    <string name="transfer_stopping">Stopping…</string>
+    <string name="transfer_stopped">Stopped</string>
+    <string name="transfer_completed">Completed</string>
+    <string name="transfer_failed">Failed</string>
+    <string name="transfer_waiting">Waiting for progress…</string>
 </resources>

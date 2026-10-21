@@ -442,4 +442,16 @@
     <plurals name="delete_x_items">
         <item quantity="other">删除 %1$d 个项目</item>
     </plurals>
+    <string name="transfer_tasks">传输任务</string>
+    <string name="transfer_uploads">上传</string>
+    <string name="transfer_downloads">下载</string>
+    <string name="transfer_stop">停止传输</string>
+    <string name="transfer_no_active">暂无传输任务</string>
+    <string name="transfer_idle">空闲</string>
+    <string name="transfer_running">传输中</string>
+    <string name="transfer_stopping">正在停止…</string>
+    <string name="transfer_stopped">已停止</string>
+    <string name="transfer_completed">已完成</string>
+    <string name="transfer_failed">失败</string>
+    <string name="transfer_waiting">等待传输进度…</string>
 </resources>
