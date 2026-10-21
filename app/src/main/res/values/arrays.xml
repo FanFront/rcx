@@ -9,6 +9,14 @@
     <array name="locales">
         <item>en-US</item>
         <item>de-DE</item>
+        <item>zh-CN</item>
+    </array>
+
+    <!-- Native language names are deliberately readable in any UI locale. -->
+    <array name="locale_display_names">
+        <item>English</item>
+        <item>Deutsch</item>
+        <item>简体中文</item>
     </array>
 
     <array name="provider_ids">
@@ -33,6 +41,8 @@
         <item>GOOGLE_PHOTOS</item>
         <item>UNION</item>
         <item>MEGA</item>
+        <item>S3</item>
+        <item>CLOUDFLARE_R2</item>
     </array>
 
     <integer-array name="provider_icons">
@@ -57,5 +67,7 @@
         <item>@drawable/ic_google_photos</item>
         <item>@drawable/ic_union_24dp</item>
         <item>@drawable/ic_mega_logo_black</item>
+        <item>@drawable/ic_amazon</item>
+        <item>@drawable/ic_cloud</item>
     </integer-array>
 </resources>

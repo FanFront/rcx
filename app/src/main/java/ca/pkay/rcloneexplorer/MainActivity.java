@@ -347,6 +347,9 @@ public class MainActivity extends AppCompatActivity
                     Toasty.info(this,  getString(R.string.no_config_found), Toast.LENGTH_SHORT, true).show();
                 }
                 break;
+            case R.id.nav_transfers:
+                startActivity(new Intent(this, TransferActivity.class));
+                break;
             case R.id.nav_settings:
                 Intent settingsIntent = new Intent(this, SettingsActivity.class);
                 tryStartActivityForResult(this, settingsIntent, SETTINGS_CODE);

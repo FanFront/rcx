@@ -182,6 +182,12 @@ public class RemoteConfig extends AppCompatActivity implements RemotesConfigList
             case "MEGA":
                 fragment = MegaConfig.newInstance();
                 break;
+            case "S3":
+                fragment = S3Config.newInstance(false);
+                break;
+            case "CLOUDFLARE_R2":
+                fragment = S3Config.newInstance(true);
+                break;
             default:
                 return;
         }

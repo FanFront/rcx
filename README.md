@@ -42,6 +42,8 @@ Usage
 ------------
 [See the documentation](https://x0b.github.io/docs/).
 
+This fork adds built-in [Amazon S3 and Cloudflare R2 setup](docs/s3-r2.md) and **Simplified Chinese (简体中文)** UI resources. See the [中文使用指南](docs/s3-r2.zh-CN.md) for language selection and R2 upload instructions.
+
 Known Issues
 ------------
 - Reauthorization of OAuth remotes shows intermittent failures. This is currently under investigation.

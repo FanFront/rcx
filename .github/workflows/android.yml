@@ -2,61 +2,72 @@ name: Android CI
 
 on:
   push:
-    branches:
-      - 'dev'
+    branches: [master, dev]
   pull_request:
-    branches-ignore:
-      - 'dev'
+  workflow_dispatch:
 
 jobs:
-  build-all:
-
-    runs-on: ubuntu-20.04
-
+  validate-chinese-resources:
+    runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up JDK 1.8
-      uses: actions/setup-java@v1
-      with:
-        java-version: 1.8
-    - name: Set up Go 1.16
-      uses: actions/setup-go@v1
-      with:
-        go-version: 1.16
-      id: go
-    - name: Force NDK version
-      run: echo "y" | sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install "ndk;22.1.7171670"
-    - name: Build rclone
-      run: ./gradlew rclone:buildNative
-    - name: Build app
-      run: ./gradlew assembleOssDebug
-    - name: Upload APK (arm)
-      uses: actions/upload-artifact@v2
-      with:
-        name: arm.apk
-        path: app/build/outputs/apk/oss/debug/app-oss-armeabi-v7a-debug.apk
-        retention-days: 3
-    - name: Upload APK (arm64)
-      uses: actions/upload-artifact@v2
-      with:
-        name: arm64.apk
-        path: app/build/outputs/apk/oss/debug/app-oss-arm64-v8a-debug.apk
-        retention-days: 3
-    - name: Upload APK (x86)
-      uses: actions/upload-artifact@v2
-      with:
-        name: x86.apk
-        path: app/build/outputs/apk/oss/debug/app-oss-x86-debug.apk
-        retention-days: 3
-    - name: Upload APK (arm)
-      uses: actions/upload-artifact@v2
-      with:
-        name: x64.apk
-        path: app/build/outputs/apk/oss/debug/app-oss-x86_64-debug.apk
-        retention-days: 3
-    - name: Upload APK (universal)
-      uses: actions/upload-artifact@v2
-      with:
-        name: universal.apk
-        path: app/build/outputs/apk/oss/debug/app-oss-universal-debug.apk
-        retention-days: 14
+      - uses: actions/checkout@v4
+      - name: Verify Chinese resource XML and formatting
+        run: python3 scripts/check_chinese_resources.py
+
+  build-all:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      # Modern Android SDK command-line tools need JDK 17+.
+      - name: Set up JDK 17 for sdkmanager
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Match the minimum toolchain used by rclone v1.75.2.
+      - name: Set up Go 1.26.9
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.9'
+          cache: false
+
+      - name: Install Android SDK 30 and NDK r28c
+        run: |
+          set +o pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-30" "ndk;28.2.13676358"
+
+      # The existing Gradle 6.9/Android Gradle Plugin 4.2.1 build uses JDK 11.
+      - name: Set up JDK 11 for Gradle
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+
+      # Resolve Android dependencies and compile/test the Java sources before
+      # the much slower native Go cross-compilation.
+      - name: Run Java unit tests
+        run: ./gradlew testOssDebugUnitTest --stacktrace
+
+      - name: Build rclone for Android
+        run: ./gradlew rclone:buildNative --stacktrace
+
+      - name: Check native binaries
+        run: |
+          for abi in armeabi-v7a arm64-v8a x86 x86_64; do
+            test -s "app/lib/$abi/librclone.so"
+            file "app/lib/$abi/librclone.so"
+          done
+
+      - name: Build OSS debug APKs
+        run: ./gradlew assembleOssDebug --stacktrace
+
+      - name: Upload debug APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: rcx-rclone-1.75.2-debug
+          path: app/build/outputs/apk/oss/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
